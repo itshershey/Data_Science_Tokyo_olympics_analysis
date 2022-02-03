@@ -1,0 +1,445 @@
+---
+title: "Olympics Data analysis from 1896 to Rio 2016"
+output:
+  html_document:
+    df_print: paged
+  html_notebook: default
+  pdf_document: default
+---
+
+
+
+```{r}
+library(dplyr)
+
+```
+
+```{r}
+library("ggplot2")
+```
+
+```{r}
+library(tidyr)
+```
+```{r}
+#importing the data sets
+athletes <- read.csv("athlete_events.csv")
+nrow(athletes)
+```
+```{r}
+region <- read.csv("noc_regions.csv")
+nrow(region)
+```
+
+```{r}
+head(athletes)
+```
+
+```{r}
+head(region)
+```
+```{r}
+#Combining the two data frames
+athletes_df <- merge(x = athletes, y = region, by = 'NOC')
+```
+```{r}
+#Renaming columns region to Region, notes to Notes
+colnames(athletes_df)[16] <- "Region"
+colnames(athletes_df)[17] <- "Notes"
+```
+```{r}
+#Displaying details of columns
+```
+
+
+```{r}
+summary(athletes_df)
+```
+```{r}
+#Identifying the columns with NAs
+NA_col <- colnames(athletes_df)[apply(athletes_df, 2, anyNA)]
+NA_col
+```
+
+```{r}
+sum(is.na(athletes_df$Age))
+```
+
+```{r}
+#Check no. of NAs in each column
+sapply(athletes_df, function(x) sum(is.na(x)))
+```
+
+```{r}
+unique(athletes_df$Age)
+```
+
+```{r}
+max(athletes_df$Age, na.rm = TRUE)
+```
+
+```{r}
+#athletes_df$Medal == "Gold"
+```
+```{r}
+head(athletes_df[athletes_df$Medal == "Gold",])
+```
+
+```{r}
+# Dropping entire NAs will reduce data size
+athletes_temp_df <- athletes_df %>% drop_na()
+#dim(athletes_temp_df)
+
+```
+
+```{r}
+#Assign “NA” string to non available data
+athletes_df$Medal[is.na(athletes_df$Medal)] <- "NA"
+athletes_df$Age[is.na(athletes_df$Age)] <- 0
+```
+```{r}
+#Plotting the ages of athletes
+
+hist(athletes_df$Age, xlab = "Age", ylab = "Frequency of Age", xlim = c(0,80), col = "blue", las =1, border = "green", main = "Histogram of Athletes Age")
+```
+```{r}
+# Unique items
+unique(athletes_df$Games)
+
+```
+
+```{r}
+# Unique items
+
+unique(athletes_df$Sport)
+
+```
+```{r}
+# Unique items
+
+#unique(athletes_df$Event)
+#head(athletes_df$Event)
+
+```
+```{r}
+# Unique items
+
+#unique(athletes_df$Team)
+```
+```{r}
+#Finding athletes from India
+
+#Print the first 6 rows that have TRUE values
+
+head(athletes_df[athletes_df$Team == "India",]) 
+```
+
+```{r}
+#All rows with team name Japan
+
+athletes_df[athletes_df$Team == "Japan",]
+```
+```{r}
+#Top countries that have sent athletes to the Olympics
+top10 <- athletes_df %>%
+  group_by(Team) %>%
+  summarise(participants = n()) %>%
+  arrange(desc(participants))
+
+#top10$Team
+head(top10,10)
+```
+```{r}
+#Plotting the  top 10 countries and reordering  graph based on participants in descending order
+ggplot(head(top10,10),aes(x = reorder(Team, -participants), y = participants, fill = Team)) +
+  geom_bar(stat = "identity") +
+  #scale_x_discrete(guide = guide_axis(n.dodge=13)) +
+  theme_classic() +
+  labs(
+    x = "Team",
+    y = "Participation",
+    title = paste(
+      "Group_by Team with summarise()"
+    )
+  )
+```
+```{r}
+# To find unique sports seasons
+unique(athletes_df$Season)
+```
+```{r}
+#Find unique sports where season is summer
+#athletes_df$Season == "Summer"
+summer_sport <- athletes_df[athletes_df$Season == "Summer",]
+unique(summer_sport$Sport)
+
+```
+```{r}
+# To find total number of males and females
+gender_count <- athletes_df %>%
+  group_by(Sex) %>%
+  summarise(male_female = n())
+
+gender_count
+
+```
+
+
+```{r}
+#Grouping columns and find their length
+tapply(athletes_df$Sex,athletes_df$Sex,length)
+
+
+```
+```{r}
+# Pie Chart for number of females vs males participants
+piepercent <- round(100 * gender_count$male_female / sum(gender_count$male_female), 1)
+pie(gender_count$male_female, labels = piepercent, main = "Pie Chart M/F", col = rainbow(length(gender_count)))
+legend("topright", c("Female", "Male"), 
+       cex = 0.5, fill = rainbow(length(gender_count)))
+
+```
+```{r}
+# Find total no of medals
+medal <- tapply(athletes_df$Medal, athletes_df$Medal, length)
+medal
+pie(medal)
+
+```
+```{r}
+# Total number of female athletes in Summer Olympics each year
+participants <- athletes_df %>%
+  group_by(Sex, Season, Year) %>%
+  summarise(participants = n())
+
+```
+
+```{r}
+head(participants,20)
+female_summer <- participants[participants$Sex=='F' & participants$Season == "Summer",]
+female_summer
+
+
+```
+```{r}
+#Plotting female participation in Summer Olympics
+plot(female_summer$Year, female_summer$participation)
+```
+```{r}
+participants[participants$Sex=='F',]
+```
+```{r}
+# Total number of female athletes in Winter Olympics each year
+participants[participants$Sex=='F' & participants$Season == "Winter",]
+
+```
+```{r}
+# Total number of male athletes in Winter Olympics each year
+male_winter <- participants[participants$Sex=='M' & participants$Season == "Winter",]
+male_winter
+```
+```{r}
+# No of athletes with Gold medal and age more than 60
+Gold_medal <- athletes_df[athletes_df$Medal == "Gold" & athletes_df$Age > 60,]
+Gold_medal
+
+
+```
+```{r}
+count(Gold_medal)
+
+```
+
+```{r}
+#First and second column
+
+athletes_df[athletes_df$Medal == "Gold" & athletes_df$Age > 60,c(1,2)]
+```
+
+```{r}
+#Display specific columns from the result
+
+athletes_df[athletes_df$Medal == "Gold" & athletes_df$Age > 60,c(1:2,13)]
+
+```
+
+```{r}
+#Grouping based on gender and medal
+
+All_gender_medal <- athletes_df %>%
+  group_by(Sex, Medal) %>%
+  summarise(count_medal = n())
+
+```
+
+```{r}
+All_gender_medal
+```
+```{r}
+#Grouping based on medals in Females only
+
+All_gender_medal[All_gender_medal$Sex == 'F',]
+
+```
+
+```{r}
+#Visualization
+
+Gold_medal
+
+```
+
+```{r}
+#Finding  which sport has gold medals
+
+tbl <- with(Gold_medal, table(Medal,Sport))
+tbl
+
+```
+
+```{r}
+barplot(tbl)
+```
+```{r}
+#Find which region has gold medals
+
+tbl <- with(Gold_medal, table(Medal,Region))
+barplot(tbl)
+```
+```{r}
+#Gold medals from each country
+
+Country_gold <- athletes_df %>%
+  group_by(Region, Medal) %>%
+  summarise(cg_count <- n())
+
+
+```
+
+```{r}
+#No of medals in each country
+
+Country_gold
+
+
+```
+```{r}
+#No of gold medals in each country
+
+Country_gold[Country_gold$Medal == "Gold",]
+
+
+```
+```{r}
+#Top 10 countries with gold medal in descending order
+
+top10gold <- athletes_df %>%
+  group_by(Region, Medal) %>%
+  summarise(participants = n()) %>%
+  arrange(desc(participants))
+
+```
+
+```{r}
+top10gold <- head(top10gold[top10gold$Medal == "Gold",],10)
+top10gold
+
+```
+```{r}
+#Plotting Top 10 countries with gold medal
+
+ggplot(top10gold,aes(x = Region, y = participants, fill = Region)) +
+  geom_bar(stat = "identity") +
+  #scale_x_discrete(guide = guide_axis(n.dodge=13)) +
+  theme_classic() +
+  labs(
+    x = "Team",
+    y = "Participation",
+    title = paste(
+      "Group_by Team with summarise()"
+    )
+  )
+
+
+```
+
+```{r}
+#Rio Olympics
+
+#Finding latest year Olympics were conducted
+
+max(unique(athletes_df$Year))
+
+
+```
+```{r}
+#Finding no of gold medals for each team
+
+team_names <- athletes_df[athletes_df$Year == 2016 & athletes_df$Medal == "Gold", 8]
+tail(sort(table(team_names)),10)
+
+```
+```{r}
+#Plotting no. of gold medals for each team
+
+barplot(tail(sort(table(team_names)),10))
+
+
+```
+```{r}
+#Plotting after adjusting the graphical margins
+
+par(mai=c(1,2,1,1)) 
+barplot(tail(sort(table(team_names)),10), main = "Gold Medal Rio Olympics",
+        xlab = "No. of Gold Medals",
+        col = c(rainbow(10)),
+        horiz = TRUE, las = 1)
+```
+```{r}
+unique(team_names)
+
+
+```
+```{r}
+#Group based on Height and weight of medal winners
+
+winners_ht_wt <- athletes_df %>%
+  group_by(Medal != "NA")
+#OR
+winners <- athletes_df[athletes_df$Medal != "NA",]
+winners
+
+
+```
+```{r}
+#Plotting height and weight of all medal winners
+
+plot(winners[,6], winners[,7])
+
+```
+```{r}
+#Height and weight of only female participants
+
+plot(winners[winners$Sex == 'F',6], winners[winners$Sex == 'F',7], xlim = c(120,220), ylim = c(30,180), col = "green")
+
+```
+```{r}
+#Height and weight of only male participants
+
+plot(winners[winners$Sex == 'M',6], winners[winners$Sex == 'M',7], xlim = c(120,220), ylim = c(30,180), col = "blue", xlab = "Height", ylab = "Weight")
+
+```
+```{r}
+#Height and weight of male and female participants
+
+plot(winners[winners$Sex == 'M',6], winners[winners$Sex == 'M',7], xlim = c(120,220), ylim = c(30,180), col = "blue", xlab = "Height", ylab = "Weight")
+points(winners[winners$Sex == 'F',6], winners[winners$Sex == 'F',7], xlim = c(120,220), ylim = c(30,180), col = "red")
+#Adding legend function
+legend(120, 190, legend = c("Male", "Female"),col=c("blue", "red"), cex=0.8, pch = c(19,19))
+
+```
+```{r}
+
+
+```
+
